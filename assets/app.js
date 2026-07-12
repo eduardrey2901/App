@@ -216,7 +216,20 @@
       }
       day.exercises.forEach((ex, e) => {
         list.appendChild(exerciseRow(day, ex, r, e, st));
+
+        // Rest after this exercise, before the next one in the same round
+        const restSeconds = ex.restAfter || (e < day.exercises.length - 1 ? day.restBetweenExercises : null);
+        if (restSeconds) {
+          const nextName = e < day.exercises.length - 1 ? day.exercises[e + 1].name : null;
+          const label = nextName ? `Descanso · antes de ${nextName}` : "Descanso";
+          list.appendChild(restRow(dayNum, `r${r}-e${e}`, restSeconds, label));
+        }
       });
+
+      // Rest between rounds
+      if (rounds > 1 && r < rounds - 1 && day.restBetweenRounds) {
+        list.appendChild(restRow(dayNum, `round${r}`, day.restBetweenRounds, `Descanso · antes de la ronda ${r + 2}`, true));
+      }
     }
     dayContent.appendChild(list);
 
@@ -259,6 +272,9 @@
     const row = document.createElement("div");
     row.className = "exercise" + (checked ? " is-checked" : "");
 
+    const main = document.createElement("div");
+    main.className = "exercise__row";
+
     const checkBtn = document.createElement("button");
     checkBtn.className = "exercise__check";
     checkBtn.setAttribute("aria-label", "Marcar ejercicio hecho");
@@ -269,7 +285,7 @@
       saveProgress();
       renderDay(currentDay);
     });
-    row.appendChild(checkBtn);
+    main.appendChild(checkBtn);
 
     const body = document.createElement("div");
     body.className = "exercise__body";
@@ -281,14 +297,44 @@
       <div class="exercise__name">${ex.name}</div>
       ${amountText ? `<div class="exercise__amount">${amountText}</div>` : ""}
       ${ex.scale ? `<div class="exercise__scale">${ex.scale}</div>` : ""}
-      ${ex.restAfter ? `<div class="exercise__rest">Descanso después: ${ex.restAfter}s</div>` : ""}
     `;
-    row.appendChild(body);
+    main.appendChild(body);
 
+    let tKey = null;
     if (ex.seconds) {
-      row.appendChild(timerWidget(day.day, key, ex.seconds, ex.name));
+      tKey = `${day.day}-${key}`;
+      main.appendChild(timerWidget(day.day, key, ex.seconds, ex.name));
     }
+    row.appendChild(main);
+    if (tKey) row.appendChild(timerBar(tKey));
 
+    return row;
+  }
+
+  function restRow(dayNum, keySuffix, seconds, label, isRoundRest) {
+    const row = document.createElement("div");
+    row.className = "exercise exercise--rest" + (isRoundRest ? " exercise--round-rest" : "");
+
+    const main = document.createElement("div");
+    main.className = "exercise__row";
+
+    const icon = document.createElement("div");
+    icon.className = "exercise__rest-icon";
+    icon.textContent = "💤";
+    main.appendChild(icon);
+
+    const body = document.createElement("div");
+    body.className = "exercise__body";
+    body.innerHTML = `
+      <div class="exercise__name">Descanso</div>
+      <div class="exercise__amount">${formatDuration(seconds)}</div>
+    `;
+    main.appendChild(body);
+
+    const tKey = `${dayNum}-rest-${keySuffix}`;
+    main.appendChild(timerWidget(dayNum, `rest-${keySuffix}`, seconds, label));
+    row.appendChild(main);
+    row.appendChild(timerBar(tKey));
     return row;
   }
 
@@ -411,6 +457,31 @@
     if (floatingTimerKey) resetTimer(floatingTimerKey);
   });
   floatingCloseBtn.addEventListener("click", () => hideFloating());
+
+  function timerBar(tKey) {
+    const t = timers[tKey];
+    const wrap = document.createElement("div");
+    wrap.className = "exercise__bar-wrap";
+    const bar = document.createElement("div");
+    bar.className = "exercise__bar";
+    const fill = document.createElement("div");
+    fill.className = "exercise__bar-fill";
+    bar.appendChild(fill);
+    const label = document.createElement("div");
+    label.className = "exercise__bar-label";
+    wrap.appendChild(bar);
+    wrap.appendChild(label);
+
+    const update = (tt) => {
+      const elapsed = Math.max(0, tt.total - tt.remaining);
+      const pct = tt.total ? Math.min(100, (elapsed / tt.total) * 100) : 0;
+      fill.style.width = pct + "%";
+      label.textContent = `${formatClock(elapsed)} transcurrido · ${formatClock(Math.max(tt.remaining, 0))} restante`;
+    };
+    update(t);
+    registerDisplay(tKey, update);
+    return wrap;
+  }
 
   function timerWidget(dayNum, key, seconds, label) {
     const tKey = `${dayNum}-${key}`;
