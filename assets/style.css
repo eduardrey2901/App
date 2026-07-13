@@ -269,3 +269,79 @@ body.has-floating-timer{ padding-bottom:84px; }
 .floating-timer__controls{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .timer__btn--lg{ width:44px; height:44px; font-size:16px; background:var(--accent); color:#0E1015; border:none; }
 .timer__btn--lg:hover{ background:var(--accent-dim); }
+
+/* ---------- Start workout CTA ---------- */
+.start-workout-btn{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  background:var(--accent); color:#0E1015; border:none; border-radius:var(--radius);
+  padding:16px; font-size:16px; font-weight:800; margin:18px 0 6px;
+  font-family:var(--font-display); letter-spacing:.03em; font-size:20px;
+}
+.start-workout-btn:hover{ background:var(--accent-dim); }
+
+/* ---------- Workout mode (full screen) ---------- */
+.workout-overlay{
+  position:fixed; inset:0; z-index:100; background:var(--bg);
+  display:flex; flex-direction:column;
+  padding:calc(16px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+}
+.workout-overlay__top{ display:flex; align-items:center; gap:16px; }
+.workout-overlay__exit{
+  background:none; border:1px solid var(--line); color:var(--text-muted);
+  padding:8px 14px; border-radius:999px; font-size:13px; flex-shrink:0;
+}
+.workout-overlay__exit:hover{ color:var(--text); border-color:var(--line-strong); }
+.workout-overlay__progress{ flex:1; display:flex; align-items:center; gap:12px; }
+.workout-overlay__progress-bar{ flex:1; height:6px; border-radius:999px; background:var(--bg-card); overflow:hidden; }
+.workout-overlay__progress-fill{ height:100%; width:0%; background:linear-gradient(90deg, var(--accent-dim), var(--accent)); transition:width .3s ease; }
+#workoutProgressLabel{ font-size:12px; color:var(--text-muted); white-space:nowrap; }
+
+.workout-overlay__body{ flex:1; display:flex; align-items:center; justify-content:center; }
+
+.workout-step{
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:14px; width:100%; max-width:420px;
+}
+.workout-step__round{ font-size:13px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.06em; }
+.workout-step__badge{
+  display:inline-block; font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+  font-weight:700; padding:5px 14px; border-radius:999px;
+  background:color-mix(in srgb, var(--type-color, var(--accent)) 18%, transparent);
+  color:var(--type-color, var(--accent));
+  border:1px solid color-mix(in srgb, var(--type-color, var(--accent)) 45%, transparent);
+}
+.workout-step__badge--rest{ background:rgba(139,147,167,0.14); color:var(--text-muted); border-color:var(--line-strong); }
+.workout-step__name{ font-size:40px; line-height:1.05; color:var(--text); font-family:var(--font-display); letter-spacing:.01em; }
+.workout-step__scale{ font-size:14px; color:var(--text-muted); font-style:italic; max-width:34ch; }
+.workout-step__amount{ font-family:var(--font-display); font-size:56px; color:var(--accent); line-height:1; margin:6px 0; }
+.workout-step__next-preview{ font-size:13px; color:var(--text-dim); }
+
+.workout-timer{ display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; margin:10px 0; }
+.workout-timer__display{ font-family:var(--font-display); font-size:88px; color:var(--text); line-height:1; }
+.workout-timer.is-running .workout-timer__display{ color:var(--accent); }
+.workout-timer__bar{ width:100%; max-width:280px; height:6px; border-radius:999px; background:var(--bg-card); overflow:hidden; }
+.workout-timer__bar-fill{ height:100%; width:0%; background:var(--accent); transition:width 1s linear; }
+
+.workout-step__next-btn{
+  width:100%; background:var(--accent); color:#0E1015; border:none; border-radius:var(--radius);
+  padding:20px; font-size:18px; font-weight:800; margin-top:8px;
+  font-family:var(--font-display); letter-spacing:.02em; font-size:22px;
+}
+.workout-step__next-btn:hover{ background:var(--accent-dim); }
+.workout-step__skip{
+  background:none; border:1px solid var(--line); color:var(--text-muted);
+  padding:10px 18px; border-radius:999px; font-size:13.5px; margin-top:2px;
+}
+.workout-step__skip:hover{ color:var(--text); border-color:var(--line-strong); }
+.workout-step__back{
+  background:none; border:none; color:var(--text-dim); font-size:13px; margin-top:14px;
+  padding:6px 10px;
+}
+.workout-step__back:hover{ color:var(--text-muted); }
+.workout-step--done .workout-step__name{ color:var(--accent); }
+
+@media (max-width:480px){
+  .workout-step__name{ font-size:30px; }
+  .workout-timer__display{ font-size:64px; }
+  .workout-step__amount{ font-size:44px; }
+}

@@ -48,6 +48,32 @@
     return tot > 0 && checkedUnits(day) === tot;
   }
 
+  function buildDaySteps(day) {
+    const rounds = day.rounds || 1;
+    const steps = [];
+    for (let r = 0; r < rounds; r++) {
+      day.exercises.forEach((ex, e) => {
+        steps.push({ type: "exercise", roundIdx: r, exIdx: e, ex, checkKey: `${r}-${e}` });
+        const restSeconds = ex.restAfter || (e < day.exercises.length - 1 ? day.restBetweenExercises : null);
+        if (restSeconds) {
+          const nextName = e < day.exercises.length - 1 ? day.exercises[e + 1].name : null;
+          steps.push({
+            type: "rest", roundIdx: r, seconds: restSeconds,
+            label: nextName ? `antes de ${nextName}` : null,
+            restKey: `r${r}-e${e}`,
+          });
+        }
+      });
+      if (rounds > 1 && r < rounds - 1 && day.restBetweenRounds) {
+        steps.push({
+          type: "rest", roundIdx: r, seconds: day.restBetweenRounds,
+          label: `antes de la ronda ${r + 2}`, restKey: `round${r}`, isRoundRest: true,
+        });
+      }
+    }
+    return steps;
+  }
+
   /* ---------- Elements ---------- */
   const calendarView = document.getElementById("calendarView");
   const dayView = document.getElementById("dayView");
@@ -187,6 +213,12 @@
       dayContent.appendChild(warmup);
     }
 
+    const startBtn = document.createElement("button");
+    startBtn.className = "start-workout-btn";
+    startBtn.innerHTML = `<span>▶</span> Iniciar entrenamiento`;
+    startBtn.addEventListener("click", () => startTraining(dayNum));
+    dayContent.appendChild(startBtn);
+
     if (rounds > 1) {
       const track = document.createElement("div");
       track.className = "rounds-track";
@@ -206,31 +238,22 @@
     const list = document.createElement("div");
     list.className = "exercise-list";
 
-    for (let r = 0; r < rounds; r++) {
-      if (rounds > 1) {
+    let lastRound = -1;
+    buildDaySteps(day).forEach(step => {
+      if (rounds > 1 && step.type === "exercise" && step.exIdx === 0 && step.roundIdx !== lastRound) {
+        lastRound = step.roundIdx;
         const rlabel = document.createElement("div");
         rlabel.className = "rounds-track__label";
-        rlabel.style.marginTop = r > 0 ? "6px" : "0";
-        rlabel.textContent = `Ronda ${r + 1}`;
+        rlabel.style.marginTop = step.roundIdx > 0 ? "6px" : "0";
+        rlabel.textContent = `Ronda ${step.roundIdx + 1}`;
         list.appendChild(rlabel);
       }
-      day.exercises.forEach((ex, e) => {
-        list.appendChild(exerciseRow(day, ex, r, e, st));
-
-        // Rest after this exercise, before the next one in the same round
-        const restSeconds = ex.restAfter || (e < day.exercises.length - 1 ? day.restBetweenExercises : null);
-        if (restSeconds) {
-          const nextName = e < day.exercises.length - 1 ? day.exercises[e + 1].name : null;
-          const label = nextName ? `Descanso · antes de ${nextName}` : "Descanso";
-          list.appendChild(restRow(dayNum, `r${r}-e${e}`, restSeconds, label));
-        }
-      });
-
-      // Rest between rounds
-      if (rounds > 1 && r < rounds - 1 && day.restBetweenRounds) {
-        list.appendChild(restRow(dayNum, `round${r}`, day.restBetweenRounds, `Descanso · antes de la ronda ${r + 2}`, true));
+      if (step.type === "exercise") {
+        list.appendChild(exerciseRow(day, step.ex, step.roundIdx, step.exIdx, st));
+      } else {
+        list.appendChild(restRow(dayNum, step.restKey, step.seconds, `Descanso · ${step.label}`, step.isRoundRest));
       }
-    }
+    });
     dayContent.appendChild(list);
 
     const completeBox = document.createElement("button");
@@ -338,6 +361,176 @@
     return row;
   }
 
+  /* ---------- Workout mode (full screen) ---------- */
+  let workoutState = null; // { day, steps, index }
+  let workoutActiveTKey = null;
+
+  const workoutOverlay = document.getElementById("workoutOverlay");
+  const workoutBody = document.getElementById("workoutBody");
+  const workoutProgressFill = document.getElementById("workoutProgressFill");
+  const workoutProgressLabel = document.getElementById("workoutProgressLabel");
+  const workoutExitBtn = document.getElementById("workoutExitBtn");
+
+  workoutExitBtn.addEventListener("click", () => exitWorkout());
+
+  function startTraining(dayNum) {
+    const day = WORKOUTS.find(d => d.day === dayNum);
+    const steps = buildDaySteps(day);
+    if (!steps.length) return;
+    workoutState = { day, steps, index: 0 };
+    workoutOverlay.hidden = false;
+    document.body.classList.add("workout-active");
+    renderWorkoutStep();
+  }
+
+  function exitWorkout() {
+    if (workoutActiveTKey) pauseTimer(workoutActiveTKey);
+    workoutActiveTKey = null;
+    const day = workoutState ? workoutState.day : null;
+    workoutState = null;
+    workoutOverlay.hidden = true;
+    document.body.classList.remove("workout-active");
+    if (day) renderDay(day.day);
+  }
+
+  function renderWorkoutStep() {
+    if (!workoutState) return;
+    const { day, steps, index } = workoutState;
+    if (index >= steps.length) { renderWorkoutComplete(); return; }
+    const step = steps[index];
+
+    workoutProgressFill.style.width = `${(index / steps.length) * 100}%`;
+    workoutProgressLabel.textContent = `Paso ${index + 1} / ${steps.length}`;
+    workoutBody.innerHTML = "";
+    workoutActiveTKey = null;
+
+    const wrap = document.createElement("div");
+    wrap.className = "workout-step" + (step.type === "rest" ? " workout-step--rest" : "");
+
+    if (step.type === "exercise") {
+      const meta = TYPE_META[day.type];
+      wrap.style.setProperty("--type-color", meta.color);
+      const roundsLabel = (day.rounds || 1) > 1
+        ? `<div class="workout-step__round">Ronda ${step.roundIdx + 1} de ${day.rounds}</div>` : "";
+      wrap.innerHTML = `
+        ${roundsLabel}
+        <div class="workout-step__badge">${meta.label}</div>
+        <h2 class="workout-step__name">${step.ex.name}</h2>
+        ${step.ex.scale ? `<div class="workout-step__scale">${step.ex.scale}</div>` : ""}
+      `;
+      if (step.ex.seconds) {
+        const tKey = `${day.day}-${step.checkKey}`;
+        ensureTimer(tKey, step.ex.seconds, step.ex.name);
+        workoutActiveTKey = tKey;
+        wrap.appendChild(bigTimerDisplay(tKey));
+        wrap.appendChild(workoutSkipBtn("Saltar ▶"));
+        startTimer(tKey);
+      } else {
+        const amount = document.createElement("div");
+        amount.className = "workout-step__amount";
+        amount.textContent = step.ex.reps ? `${step.ex.reps} reps` : "";
+        wrap.appendChild(amount);
+        const nextBtn = document.createElement("button");
+        nextBtn.className = "workout-step__next-btn";
+        nextBtn.textContent = "✓ Hecho, siguiente";
+        nextBtn.addEventListener("click", () => {
+          const st = dayState(day.day);
+          st.checks[step.checkKey] = true;
+          st.doneOverride = null;
+          saveProgress();
+          advanceWorkout();
+        });
+        wrap.appendChild(nextBtn);
+      }
+    } else {
+      const nextStep = steps[index + 1];
+      const nextPreview = nextStep && nextStep.type === "exercise"
+        ? `<div class="workout-step__next-preview">Después: ${nextStep.ex.name}</div>` : "";
+      wrap.innerHTML = `
+        <div class="workout-step__badge workout-step__badge--rest">Descanso</div>
+        <h2 class="workout-step__name">💤 Descanso</h2>
+        ${nextPreview}
+      `;
+      const tKey = `${day.day}-rest-${step.restKey}`;
+      ensureTimer(tKey, step.seconds, step.label ? `Descanso · ${step.label}` : "Descanso");
+      workoutActiveTKey = tKey;
+      wrap.appendChild(bigTimerDisplay(tKey));
+      wrap.appendChild(workoutSkipBtn("Saltar descanso ▶"));
+      startTimer(tKey);
+    }
+
+    workoutBody.appendChild(wrap);
+
+    if (index > 0) {
+      const back = document.createElement("button");
+      back.className = "workout-step__back";
+      back.textContent = "‹ Anterior";
+      back.addEventListener("click", () => {
+        if (workoutActiveTKey) pauseTimer(workoutActiveTKey);
+        workoutState.index -= 1;
+        renderWorkoutStep();
+      });
+      workoutBody.appendChild(back);
+    }
+  }
+
+  function workoutSkipBtn(text) {
+    const btn = document.createElement("button");
+    btn.className = "workout-step__skip";
+    btn.textContent = text;
+    btn.addEventListener("click", () => advanceWorkout());
+    return btn;
+  }
+
+  function bigTimerDisplay(tKey) {
+    const t = timers[tKey];
+    const wrap = document.createElement("div");
+    wrap.className = "workout-timer" + (t.running ? " is-running" : "");
+    const display = document.createElement("div");
+    display.className = "workout-timer__display";
+    display.textContent = formatClock(Math.max(t.remaining, 0));
+    const bar = document.createElement("div");
+    bar.className = "workout-timer__bar";
+    const fill = document.createElement("div");
+    fill.className = "workout-timer__bar-fill";
+    bar.appendChild(fill);
+    wrap.appendChild(display);
+    wrap.appendChild(bar);
+
+    registerDisplay(tKey, (tt) => {
+      display.textContent = formatClock(Math.max(tt.remaining, 0));
+      const pct = tt.total ? ((tt.total - tt.remaining) / tt.total) * 100 : 0;
+      fill.style.width = Math.min(100, Math.max(0, pct)) + "%";
+      wrap.classList.toggle("is-running", tt.running);
+    });
+    return wrap;
+  }
+
+  function advanceWorkout() {
+    if (!workoutState) return;
+    if (workoutActiveTKey) pauseTimer(workoutActiveTKey);
+    workoutState.index += 1;
+    renderWorkoutStep();
+  }
+
+  function renderWorkoutComplete() {
+    const { day, steps } = workoutState;
+    const st = dayState(day.day);
+    st.doneOverride = true;
+    saveProgress();
+    workoutBody.innerHTML = `
+      <div class="workout-step workout-step--done">
+        <div class="workout-step__badge">¡Completado!</div>
+        <h2 class="workout-step__name">Día ${day.day} hecho 💪</h2>
+        <p class="workout-step__scale">Buen trabajo. Cierra para volver al calendario.</p>
+        <button class="workout-step__next-btn" id="workoutFinishBtn">Volver al día</button>
+      </div>
+    `;
+    workoutProgressFill.style.width = "100%";
+    workoutProgressLabel.textContent = `${steps.length} / ${steps.length}`;
+    document.getElementById("workoutFinishBtn").addEventListener("click", () => exitWorkout());
+  }
+
   /* ---------- Timers ---------- */
   const timerDisplays = {}; // tKey -> Set(updateFn)
   let floatingTimerKey = null;
@@ -416,6 +609,11 @@
       t.remaining = 0;
       pauseTimer(tKey);
       beep();
+      if (workoutState && workoutActiveTKey === tKey) {
+        setTimeout(() => {
+          if (workoutState && workoutActiveTKey === tKey) advanceWorkout();
+        }, 700);
+      }
     }
     refreshDisplays(tKey);
   }
