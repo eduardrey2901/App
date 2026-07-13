@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Plan FIT · 31 días</title>
+<meta name="description" content="Calendario de entrenamiento de 31 días para ponerte en forma, en casa, sin material." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💪</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="topbar__mark">FIT·31</span>
+      <span class="topbar__sub">plan de 31 días</span>
+    </div>
+    <div class="topbar__streak" id="streakBadge">
+      <span class="streak__flame">🔥</span>
+      <span class="streak__count" id="streakCount">0</span>
+      <span class="streak__label">días hechos</span>
+    </div>
+  </header>
+
+  <main id="app">
+
+    <section id="calendarView" class="view view--calendar">
+      <div class="hero">
+        <h1 class="hero__title">Ponte fibrado.<br/>Un día a la vez.</h1>
+        <p class="hero__desc">31 entrenamientos de 15–20 minutos, sin material, pensados para quemar grasa y tonificar &mdash; no para ganar volumen.</p>
+        <div class="hero__progress">
+          <div class="hero__progress-bar"><div class="hero__progress-fill" id="overallFill"></div></div>
+          <span id="overallLabel">0 / 31 días completados</span>
+        </div>
+      </div>
+      <div id="weeksContainer" class="weeks"></div>
+    </section>
+
+    <section id="dayView" class="view view--day" hidden>
+      <button class="back-btn" id="backBtn">&larr; Calendario</button>
+      <div id="dayContent"></div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <span>Los datos de tu progreso se guardan solo en este navegador.</span>
+    <button id="resetBtn" class="footer__reset">Reiniciar progreso</button>
+  </footer>
+
+  <div id="floatingTimer" class="floating-timer" hidden style="display:none">
+    <div class="floating-timer__info">
+      <span class="floating-timer__name" id="floatingName">Temporizador</span>
+      <span class="floating-timer__display" id="floatingDisplay">0:00</span>
+    </div>
+    <div class="floating-timer__controls">
+      <button id="floatingPlayPause" class="timer__btn timer__btn--lg" aria-label="Pausar o reanudar">⏸</button>
+      <button id="floatingReset" class="timer__btn" aria-label="Reiniciar temporizador">↺</button>
+      <button id="floatingClose" class="timer__btn" aria-label="Ocultar temporizador">✕</button>
+    </div>
+  </div>
+
+  <div id="workoutOverlay" class="workout-overlay" hidden style="display:none">
+    <div class="workout-overlay__top">
+      <button id="workoutExitBtn" class="workout-overlay__exit" aria-label="Salir del modo entreno">✕ Salir</button>
+      <div class="workout-overlay__progress">
+        <div class="workout-overlay__progress-bar"><div class="workout-overlay__progress-fill" id="workoutProgressFill"></div></div>
+        <span id="workoutProgressLabel">Paso 1 / 1</span>
+      </div>
+    </div>
+    <div class="workout-overlay__body" id="workoutBody"></div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
