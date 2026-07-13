@@ -63,6 +63,17 @@
     </div>
   </div>
 
+  <div id="workoutOverlay" class="workout-overlay" hidden>
+    <div class="workout-overlay__top">
+      <button id="workoutExitBtn" class="workout-overlay__exit" aria-label="Salir del modo entreno">✕ Salir</button>
+      <div class="workout-overlay__progress">
+        <div class="workout-overlay__progress-bar"><div class="workout-overlay__progress-fill" id="workoutProgressFill"></div></div>
+        <span id="workoutProgressLabel">Paso 1 / 1</span>
+      </div>
+    </div>
+    <div class="workout-overlay__body" id="workoutBody"></div>
+  </div>
+
   <script src="assets/data.js"></script>
   <script src="assets/app.js"></script>
 </body>
